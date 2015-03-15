@@ -16,38 +16,40 @@ import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.Toast;
 
+//TODO: Make backend for better password security
+
 /**
  * The heart of the app. Where everything gets called.
  */
 public class MainActivity extends Activity {
 
-    Context context = this;
+    private final Context context = this;
 
-    DevicePolicyManager dpManager;
+    private DevicePolicyManager dpManager;
 
-    ComponentName compName;
+    private ComponentName compName;
 
-    WifiLockService wifiService;
+    private WifiLockService wifiService;
 
-    Button startButton;
-    Button passwordButton;
+    private Button startButton;
+    private Button passwordButton;
 
-    Switch adminSwitch;
-    Switch wifiSwitch;
-    Switch gpsSwitch;
+    private Switch adminSwitch;
+    private Switch wifiSwitch;
+    private Switch gpsSwitch;
 
-    EditText editField;
-    EditText confirmField;
+    private EditText editField;
+    private EditText confirmField;
 
-    String password = null;
-    String passwordConfirm = null;
+    private String password = null;
+    private String passwordConfirm = null;
 
-    Boolean isBound = false;
-    Boolean adminOff = true;
-    Boolean isOn = false;
+    private Boolean isBound = false;
+    private Boolean adminOff = true;
+    private Boolean isOn = false;
 
     /** Defines callbacks for service binding, passed to bindService() */
-    private ServiceConnection lockConnection = new ServiceConnection() {
+    private final ServiceConnection lockConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName className,
@@ -69,15 +71,15 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        startButton = (Button) findViewById(R.id.startButton);
-        passwordButton = (Button) findViewById(R.id.passwordButton);
-        adminSwitch = (Switch) findViewById(R.id.admin);
-        wifiSwitch = (Switch) findViewById(R.id.wifi);
-        gpsSwitch = (Switch) findViewById(R.id.gps);
-        editField = (EditText) findViewById(R.id.editPassword);
-        confirmField = (EditText) findViewById(R.id.confirmPassword);
+        startButton = (Button)findViewById(R.id.startButton);
+        passwordButton = (Button)findViewById(R.id.passwordButton);
+        adminSwitch = (Switch)findViewById(R.id.admin);
+        wifiSwitch = (Switch)findViewById(R.id.wifi);
+        gpsSwitch = (Switch)findViewById(R.id.gps);
+        editField = (EditText)findViewById(R.id.editPassword);
+        confirmField = (EditText)findViewById(R.id.confirmPassword);
 
-        dpManager = (DevicePolicyManager) this.getSystemService(this.DEVICE_POLICY_SERVICE);
+        dpManager = (DevicePolicyManager)this.getSystemService(DEVICE_POLICY_SERVICE);
         compName = new ComponentName(this, WifiLockReceiver.class);
 
         if (!dpManager.isAdminActive(compName)) {
@@ -86,13 +88,16 @@ public class MainActivity extends Activity {
             startButton.setEnabled(true);
         }
 
+        //Checks whether or not the app can be started.
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (!isOn) {
                     startButton.setText("Stop");
                     isOn = true;
-                    wifiService.runLocker();
+                    wifiService.setWifi(wifiSwitch.isChecked());
+                    wifiService.setRunGPS(gpsSwitch.isChecked());
+                    wifiService.runLocker(password, compName);
                 }
 
                 else {
@@ -107,6 +112,7 @@ public class MainActivity extends Activity {
             }
         });
 
+        //TODO: Limit the password to 4 - 17 characters per Androids default setting.
         passwordButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -136,13 +142,13 @@ public class MainActivity extends Activity {
             public void onClick(View view) {
 
                 if (adminOff) {
-                    Intent adminIntent = new Intent(dpManager.ACTION_ADD_DEVICE_ADMIN);
+                    Intent adminIntent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
 
-                    adminIntent.putExtra(dpManager.EXTRA_DEVICE_ADMIN, compName);
+                    adminIntent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, compName);
 
-                    adminIntent.putExtra(dpManager.EXTRA_ADD_EXPLANATION,
+                    adminIntent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
                             "This app needs extra permissions in " +
-                                    "order to enable and disable your password.");
+                                    "order to enable and disable your lock screen.");
 
                     startActivityForResult(adminIntent, 1);
                 }
@@ -189,6 +195,10 @@ public class MainActivity extends Activity {
             adminSwitch.setChecked(true);
             adminOff = false;
         }
+
+        if (password == null) {
+            startButton.setEnabled(false);
+        }
     }
 
     @Override
@@ -219,9 +229,6 @@ public class MainActivity extends Activity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+        return id == R.id.action_settings || super.onOptionsItemSelected(item);
     }
 }
