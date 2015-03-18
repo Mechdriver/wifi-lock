@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
@@ -15,6 +16,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.Toast;
+
+import java.util.ArrayList;
 
 //TODO: Make backend for better password security
 
@@ -30,9 +33,11 @@ public class MainActivity extends Activity {
     private ComponentName compName;
 
     private WifiLockService wifiService;
+    private WifiManager wifiManager;
 
     private Button startButton;
     private Button passwordButton;
+    private Button netWorkButton;
 
     private Switch adminSwitch;
     private Switch wifiSwitch;
@@ -41,12 +46,15 @@ public class MainActivity extends Activity {
     private EditText editField;
     private EditText confirmField;
 
-    private String password = null;
-    private String passwordConfirm = null;
+    private String password;
+    private String passwordConfirm;
+    private String passwordFinal = null;
 
     private Boolean isBound = false;
     private Boolean adminOff = true;
     private Boolean isOn = false;
+
+    private ArrayList<Integer> networkIDs;
 
     /** Defines callbacks for service binding, passed to bindService() */
     private final ServiceConnection lockConnection = new ServiceConnection() {
@@ -73,6 +81,7 @@ public class MainActivity extends Activity {
 
         startButton = (Button)findViewById(R.id.startButton);
         passwordButton = (Button)findViewById(R.id.passwordButton);
+        netWorkButton = (Button)findViewById(R.id.netWorkButton);
         adminSwitch = (Switch)findViewById(R.id.admin);
         wifiSwitch = (Switch)findViewById(R.id.wifi);
         gpsSwitch = (Switch)findViewById(R.id.gps);
@@ -88,16 +97,15 @@ public class MainActivity extends Activity {
             startButton.setEnabled(true);
         }
 
-        //Checks whether or not the app can be started.
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!isOn) {
+                if (!isOn && checkStart()) {
                     startButton.setText("Stop");
                     isOn = true;
                     wifiService.setWifi(wifiSwitch.isChecked());
                     wifiService.setRunGPS(gpsSwitch.isChecked());
-                    wifiService.runLocker(password, compName);
+                    wifiService.runLocker(passwordFinal, compName, networkIDs, wifiManager);
                 }
 
                 else {
@@ -120,6 +128,7 @@ public class MainActivity extends Activity {
                 passwordConfirm = confirmField.getText().toString();
 
                 if (password.equals(passwordConfirm)) {
+                    passwordFinal = password;
                     Toast.makeText(context,
                             "Your password has been set.",
                             Toast.LENGTH_SHORT).show();
@@ -137,6 +146,7 @@ public class MainActivity extends Activity {
             }
         });
 
+        //TODO: Make adminSwitch switch only if the admin is actually active.
         adminSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -151,9 +161,7 @@ public class MainActivity extends Activity {
                                     "order to enable and disable your lock screen.");
 
                     startActivityForResult(adminIntent, 1);
-                }
-
-                else {
+                } else {
                     dpManager.removeActiveAdmin(compName);
 
                         startButton.setEnabled(false);
@@ -162,14 +170,45 @@ public class MainActivity extends Activity {
                 }
             }
         });
+
+        netWorkButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int ID = wifiManager.getConnectionInfo().getNetworkId();
+
+                if (ID == -1) {
+                    Toast.makeText(context,
+                            "You must be connected to a Wifi Network!",
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    networkIDs.add(ID);
+                    Toast.makeText(context,
+                            "Your network has been added.",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    /**
+     * Checks whether or not the app can be started.
+     * @return Boolean
+     */
+    protected Boolean checkStart() {
+        return  passwordFinal != null &&
+                adminSwitch.isChecked() &&
+                (wifiSwitch.isChecked() || gpsSwitch.isChecked());
     }
 
     @Override
     protected void onStart() {
         super.onStart();
 
+        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         Intent intent = new Intent(context, WifiLockService.class);
         bindService(intent, lockConnection, Context.BIND_AUTO_CREATE);
+
+        networkIDs = new ArrayList<Integer>();
     }
 
     @Override
@@ -196,7 +235,7 @@ public class MainActivity extends Activity {
             adminOff = false;
         }
 
-        if (password == null) {
+        if (passwordFinal == null) {
             startButton.setEnabled(false);
         }
     }

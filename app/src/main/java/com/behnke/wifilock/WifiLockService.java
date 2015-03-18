@@ -4,15 +4,22 @@ import android.app.Service;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+
 public class WifiLockService extends Service {
     private Boolean runWifi = false;
     private Boolean runGPS = false;
+    private ArrayList<Integer> netWorkIDs;
     private long lockTime = 0;
+    private String password;
 
+    private DevicePolicyManager polMan;
     private ComponentName compName;
 
     private final IBinder wifiBinder = new WifiBinder();
@@ -30,19 +37,26 @@ public class WifiLockService extends Service {
 
     /**
      *
-     * @param password The password set by the user in the app.
+     * @param pass The password set by the user in the app.
      * @param cName The component name used by the WifiLock Admin.
      */
-    public void runLocker(String password, ComponentName cName) {
-        DevicePolicyManager polMan = (DevicePolicyManager)this.getSystemService(DEVICE_POLICY_SERVICE);
+    public void runLocker(String pass, ComponentName cName, ArrayList<Integer> IDs, WifiManager wifiMan) {
+        polMan = (DevicePolicyManager)this.getSystemService(DEVICE_POLICY_SERVICE);
         compName = cName;
+        password = pass;
+        netWorkIDs = IDs;
+        WifiConnectionReceiver wifiConRec = new WifiConnectionReceiver(this, wifiMan, netWorkIDs);
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        registerReceiver(wifiConRec ,intentFilter);
 
         Toast.makeText(this, "This is working, yay!", Toast.LENGTH_SHORT).show();
 
-        Boolean runLoop = true;
+        //Boolean runLoop = true;
 
         //TODO: Make this event based rather than busy waiting based.
-        while (runLoop) {
+/*        while (runLoop) {
             if (runWifi) {
                 if (wifiCheck()) {
                     unlockScreen(polMan);
@@ -78,7 +92,7 @@ public class WifiLockService extends Service {
             else {
                 lockScreen(polMan, password);
             }
-        }
+        }*/
     }
 
     /**
@@ -96,6 +110,14 @@ public class WifiLockService extends Service {
     public void setRunGPS(Boolean gps) {
         runGPS = gps;
     }
+
+    /**
+     * Adds network IDs to the white list.
+     * @param ID NetworkID used to identify white-listed networks.
+     */
+    public void addID(Integer ID) {netWorkIDs.add(ID);}
+
+    public void clearIDs() {netWorkIDs.clear();}
 
     //TODO: Implement wifi functionality.
     /**
@@ -117,10 +139,8 @@ public class WifiLockService extends Service {
 
     /**
      * Locks the screen by resetting the password to the users entered password.
-     * @param polMan The Admin Policy Manager for the WifiLock app.
-     * @param password The user's set password created before starting the service.
      */
-    private void lockScreen(DevicePolicyManager polMan, String password) {
+    protected void lockScreen() {
         //TODO: Reset the password minimum length requirement.
         polMan.resetPassword(password, 0);
     }
@@ -128,9 +148,8 @@ public class WifiLockService extends Service {
     /**
      * Unlocks the screen by setting an empty password.
      * This is done by eliminating password length requirements.
-     * @param polMan The Admin Policy Manager for the WifiLock app.
      */
-    private void unlockScreen(DevicePolicyManager polMan) {
+    protected void unlockScreen() {
         polMan.setPasswordMinimumLength(compName, 0);
         polMan.resetPassword("", 0);
     }

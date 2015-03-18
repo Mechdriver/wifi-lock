@@ -89,6 +89,15 @@
         android:layout_below="@id/confirmPassword"/>
 
     <Button
+        android:text="Add Network"
+        android:id="@+id/netWorkButton"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:layout_below="@+id/passwordButton"/>
+
+    <Button
         android:text="Start"
         android:id="@+id/startButton"
         android:layout_width="200dp"
