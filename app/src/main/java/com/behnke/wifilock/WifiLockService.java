@@ -15,11 +15,11 @@ import java.util.ArrayList;
 public class WifiLockService extends Service {
     private Boolean runWifi = false;
     private Boolean runGPS = false;
-    private ArrayList<Integer> netWorkIDs;
-    private long lockTime = 0;
+    private ArrayList<Integer> networkIDs;
     private String password;
 
     private DevicePolicyManager polMan;
+    private WifiManager wifiManager;
     private ComponentName compName;
 
     private final IBinder wifiBinder = new WifiBinder();
@@ -32,67 +32,38 @@ public class WifiLockService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return wifiBinder;
-    }
-
-    /**
-     *
-     * @param pass The password set by the user in the app.
-     * @param cName The component name used by the WifiLock Admin.
-     */
-    public void runLocker(String pass, ComponentName cName, ArrayList<Integer> IDs, WifiManager wifiMan) {
         polMan = (DevicePolicyManager)this.getSystemService(DEVICE_POLICY_SERVICE);
-        compName = cName;
-        password = pass;
-        netWorkIDs = IDs;
-        WifiConnectionReceiver wifiConRec = new WifiConnectionReceiver(this, wifiMan, netWorkIDs);
+        WifiConnectionReceiver wifiConRec = new WifiConnectionReceiver(this);
+        networkIDs = new ArrayList<Integer>();
 
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
         registerReceiver(wifiConRec ,intentFilter);
 
-        Toast.makeText(this, "This is working, yay!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "This is working, yay!", Toast.LENGTH_SHORT).show();
 
-        //Boolean runLoop = true;
+        return wifiBinder;
+    }
 
-        //TODO: Make this event based rather than busy waiting based.
-/*        while (runLoop) {
-            if (runWifi) {
-                if (wifiCheck()) {
-                    unlockScreen(polMan);
-                    runLoop = false;
-                    break;
-                }
+    /**
+     * Called when the service should start work.
+     * @param IDs Safe Wifi IDs
+     */
+    public void runLocker(ArrayList<Integer> IDs) {
+        networkIDs.addAll(IDs);
+        checkWifiNetworks();
+    }
 
-                else if (runGPS) {
-                    if (gpsCheck()) {
-                        unlockScreen(polMan);
-                    }
+    public void setWifiManager(WifiManager wifiMan) {
+        wifiManager = wifiMan;
+    }
 
-                    else {
-                        lockScreen(polMan, password);
-                    }
-                }
+    public void setPassword(String pass) {
+        password = pass;
+    }
 
-                else {
-                    lockScreen(polMan, password);
-                }
-            }
-
-            else if (runGPS) {
-                if (gpsCheck()) {
-                    unlockScreen(polMan);
-                }
-
-                else {
-                    lockScreen(polMan, password);
-                }
-            }
-
-            else {
-                lockScreen(polMan, password);
-            }
-        }*/
+    public void setComponentName(ComponentName name) {
+        compName = name;
     }
 
     /**
@@ -115,17 +86,33 @@ public class WifiLockService extends Service {
      * Adds network IDs to the white list.
      * @param ID NetworkID used to identify white-listed networks.
      */
-    public void addID(Integer ID) {netWorkIDs.add(ID);}
+    public void addID(Integer ID) {
+        networkIDs.add(ID);
+        checkWifiNetworks();
+    }
 
-    public void clearIDs() {netWorkIDs.clear();}
+    public void delID(Integer ID) {
+        networkIDs.remove(ID);
+        checkWifiNetworks();
+    }
+
+    public void clearIDs() {
+        networkIDs.clear();
+        checkWifiNetworks();
+    }
 
     //TODO: Implement wifi functionality.
     /**
      * Checks whether or not we are in a "safe" wifi zone.
-     * @return Boolean
      */
-    private Boolean wifiCheck() {
-        return true;
+    public void checkWifiNetworks() {
+        for (Integer ID : networkIDs) {
+            if (ID.equals(wifiManager.getConnectionInfo().getNetworkId())) {
+                unlockScreen();
+                return;
+            }
+        }
+        lockScreen();
     }
 
     //TODO: Implement GPS functionality.

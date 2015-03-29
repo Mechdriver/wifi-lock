@@ -20,6 +20,8 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 //TODO: Make backend for better password security
+//TODO: Display a list of saved networks for the user.
+//TODO: Make app check to lock/unlock screen when the list or network status changes.
 
 /**
  * The heart of the app. Where everything gets called.
@@ -105,7 +107,10 @@ public class MainActivity extends Activity {
                     isOn = true;
                     wifiService.setWifi(wifiSwitch.isChecked());
                     wifiService.setRunGPS(gpsSwitch.isChecked());
-                    wifiService.runLocker(passwordFinal, compName, networkIDs, wifiManager);
+                    wifiService.setComponentName(compName);
+                    wifiService.setPassword(passwordFinal);
+                    wifiService.setWifiManager(wifiManager);
+                    wifiService.runLocker(networkIDs);
                 }
 
                 else {
@@ -208,6 +213,8 @@ public class MainActivity extends Activity {
         Intent intent = new Intent(context, WifiLockService.class);
         bindService(intent, lockConnection, Context.BIND_AUTO_CREATE);
 
+        //TODO: Change to HashSet.
+        //TODO: Store all info. Only pass IDs to the service.
         networkIDs = new ArrayList<Integer>();
     }
 
