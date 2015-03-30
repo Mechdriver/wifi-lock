@@ -15,12 +15,14 @@ import java.util.ArrayList;
 public class WifiLockService extends Service {
     private Boolean runWifi = false;
     private Boolean runGPS = false;
+    private Boolean rebound = false;
     private ArrayList<Integer> networkIDs;
     private String password;
 
     private DevicePolicyManager polMan;
     private WifiManager wifiManager;
     private ComponentName compName;
+    private WifiConnectionReceiver wifiConRec;
 
     private final IBinder wifiBinder = new WifiBinder();
 
@@ -33,16 +35,29 @@ public class WifiLockService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         polMan = (DevicePolicyManager)this.getSystemService(DEVICE_POLICY_SERVICE);
-        WifiConnectionReceiver wifiConRec = new WifiConnectionReceiver(this);
+        wifiConRec = new WifiConnectionReceiver(this, runWifi);
         networkIDs = new ArrayList<Integer>();
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         registerReceiver(wifiConRec ,intentFilter);
 
         //Toast.makeText(this, "This is working, yay!", Toast.LENGTH_SHORT).show();
 
         return wifiBinder;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        super.onUnbind(intent);
+        rebound = true;
+
+        return rebound;
     }
 
     /**
@@ -72,6 +87,7 @@ public class WifiLockService extends Service {
      */
     public void setWifi(Boolean wifi) {
         runWifi = wifi;
+        wifiConRec.setWifiRun(runWifi);
     }
 
     /**
@@ -101,7 +117,22 @@ public class WifiLockService extends Service {
         checkWifiNetworks();
     }
 
-    //TODO: Implement wifi functionality.
+    public Boolean getRunWifi() {
+        return runWifi;
+    }
+
+    public Boolean getRunGPS() {
+        return runGPS;
+    }
+
+    public Boolean isRebound(){
+        return rebound;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
     /**
      * Checks whether or not we are in a "safe" wifi zone.
      */

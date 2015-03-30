@@ -7,22 +7,25 @@ import android.net.wifi.WifiManager;
 
 public class WifiConnectionReceiver extends BroadcastReceiver {
     WifiLockService wifiLockService;
+    Boolean run;
 
     public WifiConnectionReceiver() {}
 
-    public WifiConnectionReceiver(WifiLockService wifiService) {
+    public WifiConnectionReceiver(WifiLockService wifiService, Boolean wifiRun) {
         wifiLockService = wifiService;
+        run = wifiRun;
+    }
+
+    public void setWifiRun(Boolean wifiRun) {
+        run = wifiRun;
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
 
-        if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-
-            if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
-                wifiLockService.checkWifiNetworks();
-            }
+        if (run && action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+            wifiLockService.checkWifiNetworks();
         }
     }
 }

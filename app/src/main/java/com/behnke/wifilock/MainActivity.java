@@ -21,7 +21,6 @@ import java.util.ArrayList;
 
 //TODO: Make backend for better password security
 //TODO: Display a list of saved networks for the user.
-//TODO: Make app check to lock/unlock screen when the list or network status changes.
 
 /**
  * The heart of the app. Where everything gets called.
@@ -102,6 +101,8 @@ public class MainActivity extends Activity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Intent intent = new Intent(context, WifiLockService.class);
+
                 if (!isOn && checkStart()) {
                     startButton.setText("Stop");
                     isOn = true;
@@ -111,9 +112,13 @@ public class MainActivity extends Activity {
                     wifiService.setPassword(passwordFinal);
                     wifiService.setWifiManager(wifiManager);
                     wifiService.runLocker(networkIDs);
+
+                    startService(intent);
                 }
 
                 else {
+                    stopService(intent);
+
                     if (isBound) {
                         unbindService(lockConnection);
                         isBound = false;
@@ -195,6 +200,36 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void setState() {
+
+        if (wifiService != null && wifiService.isRebound()) {
+            passwordFinal = wifiService.getPassword();
+
+            wifiSwitch.setChecked(wifiService.getRunWifi());
+            gpsSwitch.setChecked(wifiService.getRunGPS());
+            editField.setText(passwordFinal);
+            confirmField.setText(passwordFinal);
+            startButton.setEnabled(true);
+            startButton.setText("Stop");
+            isOn = true;
+        }
+
+        if (!dpManager.isAdminActive(compName)) {
+            startButton.setEnabled(false);
+            adminSwitch.setChecked(false);
+            adminOff = true;
+        } else {
+            startButton.setEnabled(true);
+            adminSwitch.setChecked(true);
+            adminOff = false;
+        }
+
+        if (passwordFinal == null) {
+            isOn = false;
+            startButton.setEnabled(false);
+        }
+    }
+
     /**
      * Checks whether or not the app can be started.
      * @return Boolean
@@ -216,6 +251,8 @@ public class MainActivity extends Activity {
         //TODO: Change to HashSet.
         //TODO: Store all info. Only pass IDs to the service.
         networkIDs = new ArrayList<Integer>();
+
+        setState();
     }
 
     @Override
@@ -232,34 +269,14 @@ public class MainActivity extends Activity {
     public void onResume() {
         super.onResume();
 
-        if (!dpManager.isAdminActive(compName)) {
-            startButton.setEnabled(false);
-            adminSwitch.setChecked(false);
-            adminOff = true;
-        } else {
-            startButton.setEnabled(true);
-            adminSwitch.setChecked(true);
-            adminOff = false;
-        }
-
-        if (passwordFinal == null) {
-            startButton.setEnabled(false);
-        }
+        setState();
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (!dpManager.isAdminActive(compName)) {
-            startButton.setEnabled(false);
-            adminSwitch.setChecked(false);
-            adminOff = true;
-        } else {
-            startButton.setEnabled(true);
-            adminSwitch.setChecked(true);
-            adminOff = false;
-        }
+        setState();
     }
 
     @Override
