@@ -19,8 +19,10 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-//TODO: Make backend for better password security
+//TODO: Make backend for better password security.
 //TODO: Display a list of saved networks for the user.
+//TODO: Delete saved network.
+//TODO: Make "running" notification.
 
 /**
  * The heart of the app. Where everything gets called.
@@ -190,11 +192,19 @@ public class MainActivity extends Activity {
                     Toast.makeText(context,
                             "You must be connected to a Wifi Network!",
                             Toast.LENGTH_SHORT).show();
-                } else {
+                }
+
+                else {
+
+                    if (isOn) {
+                        wifiService.addID(ID);
+                    }
+
                     networkIDs.add(ID);
+
                     Toast.makeText(context,
-                            "Your network has been added.",
-                            Toast.LENGTH_SHORT).show();
+                                   "Your network has been added.",
+                                   Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -226,6 +236,7 @@ public class MainActivity extends Activity {
 
         if (passwordFinal == null) {
             isOn = false;
+            startButton.setText("Start");
             startButton.setEnabled(false);
         }
     }
