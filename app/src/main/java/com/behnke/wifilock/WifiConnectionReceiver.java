@@ -24,7 +24,7 @@ public class WifiConnectionReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
 
-        if (run && action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+        if (run && (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION) || action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION))) {
             wifiLockService.checkWifiNetworks();
         }
     }

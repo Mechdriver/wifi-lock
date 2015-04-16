@@ -23,6 +23,9 @@ import java.util.ArrayList;
 //TODO: Display a list of saved networks for the user.
 //TODO: Delete saved network.
 //TODO: Make "running" notification.
+//TODO: Make an initial password prompt that goes away.
+//TODO: Initial tutorial screen.
+//TODO: Scan phone to look for saved networks?
 
 /**
  * The heart of the app. Where everything gets called.
@@ -158,7 +161,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        //TODO: Make adminSwitch switch only if the admin is actually active.
         adminSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -210,6 +212,10 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void openManageNetworks() {
+
+    }
+
     private void setState() {
 
         if (wifiService != null && wifiService.isRebound()) {
@@ -239,6 +245,8 @@ public class MainActivity extends Activity {
             startButton.setText("Start");
             startButton.setEnabled(false);
         }
+
+        gpsSwitch.setEnabled(false);
     }
 
     /**
@@ -302,7 +310,17 @@ public class MainActivity extends Activity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        return id == R.id.action_settings || super.onOptionsItemSelected(item);
+        switch (item.getItemId()) {
+            case R.id.action_networks:
+                openManageNetworks();
+                return true;
+
+            case R.id.action_settings:
+                //TODO: Settings Menu
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
